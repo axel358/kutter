@@ -1,7 +1,9 @@
 import sys
+import os
 from PySide2.QtWidgets import QApplication
 from PySide2.QtQml import QQmlApplicationEngine
 from PySide2.QtCore import QObject, Signal, Slot
+import subprocess
 
 
 class MainWindow(QObject):
@@ -11,9 +13,12 @@ class MainWindow(QObject):
 
     showToast = Signal(str)
 
-    @Slot(str)
-    def trimVideo(self, path):
-        pass
+    @Slot(str, str, str)
+    def trimVideo(self, path, start, end):
+        video = path.replace('file://', '')
+        output = os.path.splitext(video)[0] + ' (trimmed) ' + '.' + os.path.splitext(video)[1]
+        subprocess.run(['ffmpeg', '-i', video, '-ss', start, '-to', end, '-c', 'copy', output])
+        self.showToast.emit('Trimed and saved as ' + output)
 
 
 if __name__ == '__main__':

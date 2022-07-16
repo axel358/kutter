@@ -30,7 +30,14 @@ ApplicationWindow
                     text: "Trim"
                     icon.name: "edit-cut-symbolic"
                     displayHint: Action.DisplayHint.KeepVisible
-                    onTriggered: showPassiveNotification(videoView.duration + "")
+                    onTriggered: backend.trimVideo(openDialog.file, toHMS(videoSlider.first.value), toHMS(videoSlider.second.value))
+                }
+                ,
+                Action {
+                    text: "About"
+                    icon.name: "help-about-symbolic"
+                    displayHint: Action.DisplayHint.AlwaysHide
+                    onTriggered: aboutDialog.open()
                 }
                 ]
             }
@@ -43,16 +50,23 @@ ApplicationWindow
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 id: videoView
-                //autoPlay: true
+                autoPlay: true
                 focus: true
                 Keys.onSpacePressed: {
                     videoView.playbackState == MediaPlayer.PlayingState ? videoView.pause() : videoView.play()
                 }
 
-                onPlaying: {
-                    videoSlider.from = 0
-                    videoSlider.to = videoView.duration
-                    endField.text = videoView.duration + ""
+                onStatusChanged: {
+                    if(status == 6){
+                        videoSlider.from = 0
+                        videoSlider.to = videoView.duration
+                        videoSlider.first.value = 0
+                        videoSlider.second.value = videoView.duration
+                        endField.text = toHMS(videoView.duration)
+                        startField.text = "00:00:00"
+                    }else {
+                        console.log(status)
+                    }
                 }
 
                 MouseArea {
@@ -72,11 +86,13 @@ ApplicationWindow
                     first.onMoved: {
                         videoView.pause()
                         videoView.seek(first.value)
+                        startField.text = toHMS(first.value)
                     }
 
                     second.onMoved: {
                         videoView.pause()
                         videoView.seek(second.value)
+                        endField.text = toHMS(second.value)
                     }
                 }
 
@@ -84,7 +100,14 @@ ApplicationWindow
                 Controls.ToolButton {
                     icon.name: "media-playback-start-symbolic"
                     onClicked: {
-                        videoView.playbackState == MediaPlayer.PlayingState ? videoView.pause() : videoView.play()
+                        if(videoView.playbackState == MediaPlayer.PlayingState){
+                           videoView.pause()
+                           icon.name = "media-playback-start-symbolic"
+                        }else {
+                            videoView.seek(videoSlider.first.value)
+                            videoView.play()
+                            icon.name = "media-playback-pause-symbolic"
+                        }
                     }
                 }
                 Controls.Label {
@@ -92,7 +115,7 @@ ApplicationWindow
                 }
                 Controls.TextField {
                     id: startField
-                    text: "0"
+                    text: "00:00:00"
                     Layout.fillWidth: true
                 }
 
@@ -103,6 +126,7 @@ ApplicationWindow
                 Controls.TextField {
                     id: endField
                     Layout.fillWidth: true
+                    text: "00:00:00"
                 }
             }
 
@@ -141,6 +165,10 @@ ApplicationWindow
         title: "Trimming..."
         subtitle: "Please wait"
         standardButtons: Dialog.Ok
+    }
+
+    function toHMS(ms){
+        return new Date(ms).toISOString().substr(11, 8);
     }
 
     Connections {
